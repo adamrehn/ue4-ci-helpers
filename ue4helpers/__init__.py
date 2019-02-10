@@ -2,6 +2,7 @@ from .ArchiveUtils import ArchiveUtils
 from .AWSUtils import AWSUtils
 from .ConanUtils import ConanUtils
 from .DescriptorData import DescriptorData
+from .DockerUtils import DockerUtils
 from .FilesystemUtils import FilesystemUtils
 from .PlatformInfo import PlatformInfo
 from .PluginPackager import PluginPackager
