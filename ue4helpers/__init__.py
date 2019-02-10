@@ -1,4 +1,5 @@
 from .ArchiveUtils import ArchiveUtils
+from .AWSUtils import AWSUtils
 from .ConanUtils import ConanUtils
 from .DescriptorData import DescriptorData
 from .FilesystemUtils import FilesystemUtils

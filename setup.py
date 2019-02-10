@@ -28,6 +28,7 @@ setup(
 	zip_safe=True,
 	python_requires = '>=3.5',
 	install_requires = [
+		'boto3',
 		'conan>=1.7.4',
 		'conan-ue4cli>=0.0.10',
 		'setuptools>=38.6.0',
