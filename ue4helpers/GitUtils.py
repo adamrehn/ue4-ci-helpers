@@ -10,7 +10,7 @@ class GitUtils(object):
 		'''
 		Determines the name of the branch that is currently checked out in the specified repository
 		'''
-		branch = SubprocessUtils.capture(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], cwd=repo)
+		branch = SubprocessUtils.capture(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], suppress_stderr=True, cwd=repo)
 		return branch if branch != 'HEAD' else None
 	
 	@staticmethod
@@ -23,15 +23,17 @@ class GitUtils(object):
 		return tag if tag is not None else branch
 	
 	@staticmethod
-	def clone_command(repo, shallow=True):
+	def clone_command(repo, dest=None, progress=False, shallow=True):
 		'''
 		Generates the `git clone` command to clone the currently checked out commit in the specified repository 
 		'''
 		depth = ['--depth', '1'] if shallow == True else []
-		return ['git', 'clone'] + depth + [
+		target = [dest] if dest is not None else []
+		verbosity = ['--progress'] if progress == True else []
+		return ['git', 'clone'] + verbosity + depth + [
 			'-b', GitUtils.branch_or_tag_name(repo),
 			GitUtils.remote_url(repo)
-		]
+		] + target
 	
 	@staticmethod
 	def commit_date(repo):
@@ -64,6 +66,6 @@ class GitUtils(object):
 		Determines the name of the tag (if any) that is currently checked out in the specified repository
 		'''
 		try:
-			return SubprocessUtils.capture(['git', 'describe', '--tags', '--exact-match'], cwd=repo)
+			return SubprocessUtils.capture(['git', 'describe', '--tags', '--exact-match'], suppress_stderr=True, cwd=repo)
 		except:
 			return None

@@ -6,11 +6,12 @@ class SubprocessUtils(object):
 	'''
 	
 	@staticmethod
-	def capture(command, **kwargs):
+	def capture(command, suppress_stderr=False, **kwargs):
 		'''
 		Executes a subprocess and captures its stdout output, allowing stderr output to be printed
 		'''
-		result = subprocess.run(command, check=True, stdout=subprocess.PIPE, **kwargs)
+		stderr = subprocess.PIPE if suppress_stderr == True else None
+		result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=stderr, **kwargs)
 		return result.stdout.decode('utf-8').strip()
 	
 	@staticmethod
