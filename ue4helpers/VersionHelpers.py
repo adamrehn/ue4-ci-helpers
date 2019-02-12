@@ -1,5 +1,4 @@
-from .SubprocessUtils import SubprocessUtils
-import platform
+from .GitUtils import GitUtils
 
 class VersionHelpers(object):
 	'''
@@ -18,15 +17,11 @@ class VersionHelpers(object):
 		'''
 		Formats the date of the most recent git commit in a repository for use as a version string
 		'''
-		return lambda root, descriptor: VersionHelpers._extract_git_commit_date(root)
-	
-	
-	# "Private" methods
+		return lambda root, descriptor: GitUtils.commit_date(root)
 	
 	@staticmethod
-	def _extract_git_commit_date(repo):
+	def from_git_tag():
 		'''
-		Extracts the date from the most recent git commit in the specified repository
+		Returns the currently checked out tag of a git repository for use as a version string
 		'''
-		date = SubprocessUtils.capture(['git', 'log', '-n', '1', '--format=format:%ai'], cwd=repo)
-		return date.split(' ')[0].replace('-', '')
+		return lambda root, descriptor: GitUtils.tag_name(root)

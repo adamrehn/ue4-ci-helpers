@@ -4,6 +4,7 @@ from .ConanUtils import ConanUtils
 from .DescriptorData import DescriptorData
 from .DockerUtils import DockerUtils
 from .FilesystemUtils import FilesystemUtils
+from .GitUtils import GitUtils
 from .PlatformInfo import PlatformInfo
 from .PluginPackager import PluginPackager
 from .ProjectPackager import ProjectPackager
