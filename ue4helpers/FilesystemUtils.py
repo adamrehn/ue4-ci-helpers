@@ -19,6 +19,13 @@ class FilesystemUtils(object):
 			shutil.copy2(source, dest)
 	
 	@staticmethod
+	def is_uri(path):
+		'''
+		Determines if the specified path is a URI
+		'''
+		return '://' in path
+	
+	@staticmethod
 	def read(filename):
 		'''
 		Reads the contents of a file

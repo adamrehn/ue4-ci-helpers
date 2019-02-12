@@ -27,7 +27,7 @@ class ArchiveUtils(object):
 		FilesystemUtils.remove(destination)
 		
 		# Extract the archive, downloading it first if it is a URL
-		if '://' in archive:
+		if FilesystemUtils.is_uri(archive):
 			tools.get(archive, destination=destination)
 		else:
 			tools.unzip(archive, destination)

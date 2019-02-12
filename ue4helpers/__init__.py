@@ -1,5 +1,6 @@
 from .ArchiveUtils import ArchiveUtils
 from .AWSUtils import AWSUtils
+from .CacheUtils import CacheUtils
 from .ConanUtils import ConanUtils
 from .DescriptorData import DescriptorData
 from .DockerUtils import DockerUtils
