@@ -26,11 +26,12 @@ class FilesystemUtils(object):
 		return '://' in path
 	
 	@staticmethod
-	def read(filename):
+	def read(filename, decode=True):
 		'''
 		Reads the contents of a file
 		'''
-		return tools.load(filename, binary=True).decode('utf-8')
+		data = tools.load(filename, binary=True)
+		return data.decode('utf-8') if decode == True else data
 	
 	@staticmethod
 	def remove(path):
