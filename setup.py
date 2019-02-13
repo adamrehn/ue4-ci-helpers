@@ -7,7 +7,7 @@ with open(abspath(join(dirname(__file__), 'README.md')), 'rb') as readmeFile:
 
 setup(
 	name='ue4-ci-helpers',
-	version='0.0.2',
+	version='0.0.3',
 	description='Unreal Engine 4 Continuous Integration helper functionality',
 	long_description=__readme__,
 	long_description_content_type='text/markdown',
