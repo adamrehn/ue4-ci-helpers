@@ -44,11 +44,11 @@ class DockerUtils(object):
 			
 			# Print the stderr data if we have any
 			if stderr is not None:
-				print(stderr.decode('utf-8'), end='', file=sys.stderr)
+				print(stderr.decode('utf-8'), end='', flush=True, file=sys.stderr)
 			
 			# Print the stdout data if we have any
 			if stdout is not None:
-				print(stdout.decode('utf-8'), end='', file=sys.stdout)
+				print(stdout.decode('utf-8'), end='', flush=True, file=sys.stdout)
 		
 		# Determine if the command succeeded
 		result = container.client.api.exec_inspect(details['Id'])['ExitCode']
@@ -60,12 +60,20 @@ class DockerUtils(object):
 			))
 	
 	@staticmethod
-	def exec_multiple(container, commands, **kwargs):
+	def exec_multiple(container, commands=[], pre_hook=None, post_hook=None, **kwargs):
 		'''
 		Executes multiple commands in a container returned by `DockerUtils.start()` and streams the output
 		'''
+		
+		# If no pre-execution and post-execution hooks were provided, set them to no-ops
+		pre_hook = pre_hook if pre_hook is not None else lambda cmd: None
+		post_hook = post_hook if post_hook is not None else lambda cmd: None
+		
+		# Execute each of our commands, executing the hooks as appropriate
 		for command in commands:
+			pre_hook(command)
 			DockerUtils.exec(container, command, **kwargs)
+			post_hook(command)
 	
 	@staticmethod
 	def stop(container):
@@ -88,3 +96,13 @@ class DockerUtils(object):
 			images = [i for i in images if len(i.tags) > 0 and len(fnmatch.filter(i.tags, tagFilter)) > 0]
 		
 		return images
+	
+	@staticmethod
+	def workspace_dir(container, suffix=''):
+		'''
+		Returns a platform-appropriate workspace path for a container returned by `DockerUtils.start()`
+		'''
+		platform = container.attrs['Platform']
+		baseDir = '/tmp/workspace' if platform == 'linux' else 'C:\\workspace'
+		separator = '/' if platform == 'linux' else '\\'
+		return baseDir + ('{}{}'.format(separator, suffix) if suffix != '' else '')
