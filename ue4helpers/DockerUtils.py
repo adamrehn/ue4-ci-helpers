@@ -54,7 +54,10 @@ class DockerUtils(object):
 		result = container.client.api.exec_inspect(details['Id'])['ExitCode']
 		if result != 0:
 			container.stop()
-			raise RuntimeError('Failed to run command {} in container. Process returned exit code {}.')
+			raise RuntimeError('Failed to run command {} in container. Process returned exit code {}.'.format(
+				command,
+				result
+			))
 	
 	@staticmethod
 	def exec_multiple(container, commands, **kwargs):
