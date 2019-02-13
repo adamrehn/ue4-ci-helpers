@@ -8,14 +8,32 @@ class AWSUtils(object):
 	# Amazon EC2 utilities
 	
 	@staticmethod
+	def is_instance_running(id):
+		'''
+		Determines if the specified Amazon EC2 instance is currently running.
+		
+		`id` is the ID of the EC2 instance to be queried.
+		'''
+		ec2 = boto3.resource('ec2')
+		return ec2.Instance(id).state['Name'] == 'running'
+	
+	@staticmethod
 	def start_instance(id):
 		'''
 		Starts an Amazon EC2 instance if it is not already running.
 		
 		`id` is the ID of the EC2 instance to be started.
 		'''
+		
+		# Retrieve the instance handle
 		ec2 = boto3.resource('ec2')
 		instance = ec2.Instance(id)
+		
+		# If the instance is currently stopping, wait for the stop to complete
+		if instance.state['Name'] in ['shutting-down', 'stopping']:
+			instance.wait_until_stopped()
+		
+		# Attempt to start the instance
 		instance.start()
 		instance.wait_until_running()
 	
