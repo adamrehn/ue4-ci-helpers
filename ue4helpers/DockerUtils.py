@@ -1,4 +1,4 @@
-import docker, fnmatch
+import docker, fnmatch, sys
 
 class DockerUtils(object):
 	'''
@@ -29,28 +29,40 @@ class DockerUtils(object):
 	@staticmethod
 	def exec(container, command, **kwargs):
 		'''
-		Executes a command in a container returned by `DockerUtils.start()` and returns the output
+		Executes a command in a container returned by `DockerUtils.start()` and streams the output
 		'''
-		result, output = container.exec_run(command, **kwargs)
-		if result is not None and result != 0:
-			container.stop()
-			raise RuntimeError(
-				'Failed to run command {} in container. Process returned exit code {} with output: {}'.format(
-					command,
-					result,
-					output
-				)
-			)
 		
-		return output
+		# Attempt to start the command
+		details = container.client.api.exec_create(container.id, command, **kwargs)
+		output = container.client.api.exec_start(details['Id'], stream=True, demux=True)
+		
+		# Stream the output
+		for chunk in output:
+			
+			# Isolate the stdout and stderr chunks
+			stdout, stderr = chunk
+			
+			# Print the stderr data if we have any
+			if stderr is not None:
+				print(stderr.decode('utf-8'), end='', file=sys.stderr)
+			
+			# Print the stdout data if we have any
+			if stdout is not None:
+				print(stdout.decode('utf-8'), end='', file=sys.stdout)
+		
+		# Determine if the command succeeded
+		result = container.client.api.exec_inspect(details['Id'])['ExitCode']
+		if result != 0:
+			container.stop()
+			raise RuntimeError('Failed to run command {} in container. Process returned exit code {}.')
 	
 	@staticmethod
 	def exec_multiple(container, commands, **kwargs):
 		'''
-		Executes multiple commands in a container returned by `DockerUtils.start()` and prints the output
+		Executes multiple commands in a container returned by `DockerUtils.start()` and streams the output
 		'''
 		for command in commands:
-			print(DockerUtils.exec(container, command, **kwargs).decode('utf-8'))
+			DockerUtils.exec(container, command, **kwargs)
 	
 	@staticmethod
 	def stop(container):

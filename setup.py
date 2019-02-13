@@ -31,7 +31,7 @@ setup(
 		'boto3',
 		'conan>=1.7.4',
 		'conan-ue4cli>=0.0.10',
-		'docker>=3.0.0',
+		'docker>=3.7.0',
 		'requests',
 		'setuptools>=38.6.0',
 		'twine>=1.11.0',
