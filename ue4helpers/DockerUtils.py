@@ -1,4 +1,4 @@
-import docker, fnmatch, io, posixpath, ntpath, os, sys, tempfile
+import docker, fnmatch, io, json, posixpath, ntpath, os, sys, tempfile
 from .ArchiveUtils import ArchiveUtils
 
 class DockerUtils(object):
@@ -132,7 +132,7 @@ class DockerUtils(object):
 		'''
 		platform = DockerUtils.container_platform(container)
 		interpreter = 'python' if platform == 'windows' else 'python3'
-		command = [interpreter, '-c', 'import glob; print("\\n".join(glob.glob("{}")))'.format(pattern)]
+		command = [interpreter, '-c', 'import glob; print("\\n".join(glob.glob({})))'.format(json.dumps(pattern))]
 		stdout, stderr = DockerUtils.exec(container, command, capture=True)
 		return stdout.strip().splitlines()
 	
