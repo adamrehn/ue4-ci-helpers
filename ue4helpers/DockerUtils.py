@@ -1,30 +1,67 @@
-import docker, fnmatch, sys
+import docker, fnmatch, posixpath, ntpath, os, sys, tempfile
+from .ArchiveUtils import ArchiveUtils
 
 class DockerUtils(object):
 	'''
 	Provides functionality related to Docker
 	'''
 	
+	# Image-related functionality
+	
 	@staticmethod
-	def start_for_exec(client, image, **kwargs):
+	def image_platform(client, image):
 		'''
-		Starts a container in a detached state using a command that will block indefinitely
-		and returns the container handle. The handle can then be used to execute commands
-		inside the container. The container will be removed automatically when it is stopped,
-		but it will need to be stopped manually by calling `DockerUtils.stop()`.
+		Retrieves the platform identifier for the specified image
 		'''
-		# Determine if the container image is a Windows image or a Linux image
-		imageOS = DockerUtils.list_images(client, image)[0].attrs['Os']
-		command = ['timeout', '/t', '99999', '/nobreak'] if imageOS == 'windows' else ['bash', '-c', 'sleep infinity']
-		return client.containers.run(
-			image,
-			command,
-			stdin_open = imageOS == 'windows',
-			tty = imageOS == 'windows',
-			detach = True,
-			remove = True,
-			**kwargs
-		)
+		return DockerUtils.list_images(client, image)[0].attrs['Os']
+	
+	@staticmethod
+	def list_images(client, tagFilter = None, filters = {}):
+		'''
+		Retrieves the details for each image matching the specified filters
+		'''
+		
+		# Retrieve the list of images matching the specified filters
+		images = client.images.list(filters=filters)
+		
+		# Apply our tag filter if one was specified
+		if tagFilter is not None:
+			images = [i for i in images if len(i.tags) > 0 and len(fnmatch.filter(i.tags, tagFilter)) > 0]
+		
+		return images
+	
+	
+	# Container-related functionality
+	
+	@staticmethod
+	def container_platform(container):
+		'''
+		Retrieves the platform identifier for the specified container
+		'''
+		return container.attrs['Platform']
+	
+	@staticmethod
+	def copy_to_host(container, container_path, host_path):
+		'''
+		Copies a file or directory from a container returned by `DockerUtils.start()` to the host system.
+		
+		`container_path` is the absolute path to the file or directory in the container.
+		
+		`host_path` is the absolute path to the directory on the host system where the copied files will be placed.
+		'''
+		
+		# Create a temporary file to hold the .tar archive data
+		with tempfile.NamedTemporaryFile(suffix='.tar', delete=False) as tempArchive:
+			
+			# Copy the data from the container to the temporary archive
+			chunks, stat = container.get_archive(container_path)
+			for chunk in chunks:
+				tempArchive.write(chunk)
+			
+			# Extract the file to the host system destination
+			tempArchive.close()
+			ArchiveUtils.extract(tempArchive.name, host_path, remove=False)
+			os.unlink(tempArchive.name)
 	
 	@staticmethod
 	def exec(container, command, **kwargs):
@@ -76,6 +113,34 @@ class DockerUtils(object):
 			post_hook(command)
 	
 	@staticmethod
+	def join_path(container, a, *p):
+		'''
+		Equivalent to `os.path.join`, but uses the path conventions for the platform of the specified container
+		'''
+		platform = DockerUtils.container_platform(container)
+		return ntpath.join(a, p) if platform == 'windows' else posixpath.join(a, p)
+	
+	@staticmethod
+	def start_for_exec(client, image, **kwargs):
+		'''
+		Starts a container in a detached state using a command that will block indefinitely
+		and returns the container handle. The handle can then be used to execute commands
+		inside the container. The container will be removed automatically when it is stopped,
+		but it will need to be stopped manually by calling `DockerUtils.stop()`.
+		'''
+		platform = DockerUtils.image_platform(client, image)
+		command = ['timeout', '/t', '99999', '/nobreak'] if platform == 'windows' else ['bash', '-c', 'sleep infinity']
+		return client.containers.run(
+			image,
+			command,
+			stdin_open = platform == 'windows',
+			tty = platform == 'windows',
+			detach = True,
+			remove = True,
+			**kwargs
+		)
+	
+	@staticmethod
 	def stop(container):
 		'''
 		Stops a container returned by `DockerUtils.start()`
@@ -83,26 +148,9 @@ class DockerUtils(object):
 		container.stop(timeout=1)
 	
 	@staticmethod
-	def list_images(client, tagFilter = None, filters = {}):
-		'''
-		Retrieves the details for each image matching the specified filters
-		'''
-		
-		# Retrieve the list of images matching the specified filters
-		images = client.images.list(filters=filters)
-		
-		# Apply our tag filter if one was specified
-		if tagFilter is not None:
-			images = [i for i in images if len(i.tags) > 0 and len(fnmatch.filter(i.tags, tagFilter)) > 0]
-		
-		return images
-	
-	@staticmethod
-	def workspace_dir(container, suffix=''):
+	def workspace_dir(container):
 		'''
 		Returns a platform-appropriate workspace path for a container returned by `DockerUtils.start()`
 		'''
-		platform = container.attrs['Platform']
-		baseDir = '/tmp/workspace' if platform == 'linux' else 'C:\\workspace'
-		separator = '/' if platform == 'linux' else '\\'
-		return baseDir + ('{}{}'.format(separator, suffix) if suffix != '' else '')
+		platform = DockerUtils.container_platform(container)
+		return 'C:\\workspace' if platform == 'windows' else '/tmp/workspace'
