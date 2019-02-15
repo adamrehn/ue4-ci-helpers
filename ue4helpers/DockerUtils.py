@@ -1,4 +1,4 @@
-import docker, fnmatch, posixpath, ntpath, os, sys, tempfile
+import docker, fnmatch, io, posixpath, ntpath, os, sys, tempfile
 from .ArchiveUtils import ArchiveUtils
 
 class DockerUtils(object):
@@ -64,10 +64,14 @@ class DockerUtils(object):
 			os.unlink(tempArchive.name)
 	
 	@staticmethod
-	def exec(container, command, **kwargs):
+	def exec(container, command, capture=False, **kwargs):
 		'''
-		Executes a command in a container returned by `DockerUtils.start()` and streams the output
+		Executes a command in a container returned by `DockerUtils.start()` and streams or captures the output
 		'''
+		
+		# Determine if we are capturing the output or printing it
+		stdoutDest = io.StringIO() if capture == True else sys.stdout
+		stderrDest = io.StringIO() if capture == True else sys.stderr
 		
 		# Attempt to start the command
 		details = container.client.api.exec_create(container.id, command, **kwargs)
@@ -79,25 +83,30 @@ class DockerUtils(object):
 			# Isolate the stdout and stderr chunks
 			stdout, stderr = chunk
 			
-			# Print the stderr data if we have any
+			# Capture/print the stderr data if we have any
 			if stderr is not None:
-				print(stderr.decode('utf-8'), end='', flush=True, file=sys.stderr)
+				print(stderr.decode('utf-8'), end='', flush=True, file=stderrDest)
 			
-			# Print the stdout data if we have any
+			# Capture/print the stdout data if we have any
 			if stdout is not None:
-				print(stdout.decode('utf-8'), end='', flush=True, file=sys.stdout)
+				print(stdout.decode('utf-8'), end='', flush=True, file=stdoutDest)
 		
 		# Determine if the command succeeded
+		capturedOutput = (stdoutDest.getvalue(), stderrDest.getvalue()) if capture == True else None
 		result = container.client.api.exec_inspect(details['Id'])['ExitCode']
 		if result != 0:
 			container.stop()
-			raise RuntimeError('Failed to run command {} in container. Process returned exit code {}.'.format(
+			raise RuntimeError('Failed to run command {} in container. Process returned exit code {} with output {}.'.format(
 				command,
-				result
+				result,
+				capturedOutput if capture == True else 'printed above'
 			))
+		
+		# If we captured the output then return it
+		return capturedOutput
 	
 	@staticmethod
-	def exec_multiple(container, commands=[], pre_hook=None, post_hook=None, **kwargs):
+	def exec_multiple(container, commands=[], capture=False, pre_hook=None, post_hook=None, **kwargs):
 		'''
 		Executes multiple commands in a container returned by `DockerUtils.start()` and streams the output
 		'''
@@ -107,18 +116,33 @@ class DockerUtils(object):
 		post_hook = post_hook if post_hook is not None else lambda cmd: None
 		
 		# Execute each of our commands, executing the hooks as appropriate
+		output = []
 		for command in commands:
 			pre_hook(command)
-			DockerUtils.exec(container, command, **kwargs)
+			output.append(DockerUtils.exec(container, command, capture, **kwargs))
 			post_hook(command)
+		
+		# If we captured the output then return it
+		return output if capture == True else None
 	
 	@staticmethod
-	def join_path(container, a, *p):
+	def glob(container, pattern):
 		'''
-		Equivalent to `os.path.join`, but uses the path conventions for the platform of the specified container
+		Performs globbing using Python inside a container to list the files matching the specified pattern
 		'''
 		platform = DockerUtils.container_platform(container)
-		return ntpath.join(a, p) if platform == 'windows' else posixpath.join(a, p)
+		interpreter = 'python' if platform == 'windows' else 'python3'
+		command = [interpreter, '-c', 'import glob; print("\\n".join(glob.glob("{}")))'.format(pattern)]
+		stdout, stderr = DockerUtils.exec(container, command, capture=True)
+		return stdout.strip().splitlines()
+	
+	@staticmethod
+	def path(container):
+		'''
+		Returns the appropriate path module for the platform of the specified container
+		'''
+		platform = DockerUtils.container_platform(container)
+		return ntpath if platform == 'windows' else posixpath
 	
 	@staticmethod
 	def start_for_exec(client, image, **kwargs):
