@@ -1,4 +1,4 @@
-import docker, fnmatch, io, json, posixpath, ntpath, os, sys, tempfile
+import contextlib, docker, fnmatch, io, json, logging, posixpath, ntpath, os, sys, tempfile
 from .ArchiveUtils import ArchiveUtils
 
 class DockerUtils(object):
@@ -32,6 +32,18 @@ class DockerUtils(object):
 	
 	
 	# Container-related functionality
+	
+	@staticmethod
+	@contextlib.contextmanager
+	def automatically_stop(container, timeout=1):
+		'''
+		Context manager to automatically stop a container returned by `DockerUtils.start()`
+		'''
+		try:
+			yield container
+		finally:
+			logging.info('Stopping Docker container {}...'.format(container.short_id))
+			DockerUtils.stop(container, timeout=timeout)
 	
 	@staticmethod
 	def container_platform(container):
@@ -165,11 +177,11 @@ class DockerUtils(object):
 		)
 	
 	@staticmethod
-	def stop(container):
+	def stop(container, timeout=1):
 		'''
 		Stops a container returned by `DockerUtils.start()`
 		'''
-		container.stop(timeout=1)
+		container.stop(timeout=timeout)
 	
 	@staticmethod
 	def workspace_dir(container):
