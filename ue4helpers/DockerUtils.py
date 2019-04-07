@@ -9,6 +9,49 @@ class DockerUtils(object):
 	# Image-related functionality
 	
 	@staticmethod
+	def build_image(client, **kwargs):
+		'''
+		Builds a container image, printing progress output as it is received
+		'''
+		
+		# Initiate the build and retrieve the generator for our build events
+		events = client.api.build(decode=True, **kwargs)
+		imageID = None
+		
+		# Handle each build event as it is returned by the Docker daemon
+		for event in events:
+			
+			# Determine the event type
+			output = event.get('stream', event.get('status', '')).strip()
+			details = event.get('progress', '').strip()
+			if output != '':
+				
+				# Progress output
+				print('{}{}'.format(output, ' ' + details if details != '' else ''), flush=True)
+				
+			elif output == '' and len(event.get('stream', '')) > 0:
+				
+				# Whitespace-only progress output
+				pass
+				
+			elif 'error' in event:
+				
+				# An error has occurred
+				raise RuntimeError('Docker build failed with error: {}'.format(event['error']))
+				
+			elif 'aux' in event and 'ID' in event['aux']:
+				
+				# Build succeeded and Docker has returned the image ID
+				imageID = event['aux']['ID']
+				
+			else:
+				
+				# Unrecognised event type
+				print(event, flush=True)
+		
+		return imageID
+	
+	@staticmethod
 	def image_platform(client, image):
 		'''
 		Retrieves the platform identifier for the specified image
