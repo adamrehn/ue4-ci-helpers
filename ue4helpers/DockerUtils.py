@@ -1,4 +1,5 @@
 import contextlib, docker, fnmatch, io, json, logging, posixpath, ntpath, os, sys, tempfile
+from .FilesystemUtils import FilesystemUtils
 from .ArchiveUtils import ArchiveUtils
 
 class DockerUtils(object):
@@ -80,7 +81,7 @@ class DockerUtils(object):
 	@contextlib.contextmanager
 	def automatically_stop(container, timeout=1):
 		'''
-		Context manager to automatically stop a container returned by `DockerUtils.start()`
+		Context manager to automatically stop a container returned by `DockerUtils.start_for_exec()`
 		'''
 		try:
 			yield container
@@ -96,13 +97,48 @@ class DockerUtils(object):
 		return container.attrs['Platform']
 	
 	@staticmethod
+	def copy_from_host(container, host_path, container_path):
+		'''
+		Copies a file or directory from the host system to a container returned by `DockerUtils.start_for_exec()`.
+		
+		`host_path` is the absolute path to the file or directory on the host system.
+		
+		`container_path` is the absolute path to the directory in the container where the copied file(s) will be placed.
+		'''
+		
+		# If the host path denotes a file rather than a directory, copy it to a temporary directory
+		# (If the host path is a directory then we create a no-op context manager to use in our `with` statement below)
+		tempDir = contextlib.suppress()
+		if os.path.isfile(host_path) == True:
+			tempDir = tempfile.TemporaryDirectory()
+			FilesystemUtils.copy(host_path, os.path.join(tempDir.name, os.path.basename(host_path)))
+			host_path = tempDir.name
+		
+		# Automatically delete the temporary directory if we created one
+		with tempDir:
+			
+			# Create a temporary file to hold the .tar archive data
+			with tempfile.NamedTemporaryFile(suffix='.tar', delete=False) as tempArchive:
+				
+				# Add the data from the host system to the temporary archive
+				tempArchive.close()
+				archiveName = os.path.splitext(tempArchive.name)[0]
+				ArchiveUtils.compress(archiveName, 'tar', host_path)
+				
+				# Copy the data from the temporary archive to the container
+				container.put_archive(container_path, FilesystemUtils.read(tempArchive.name))
+				
+				# Remove the temporary archive
+				os.unlink(tempArchive.name)
+	
+	@staticmethod
 	def copy_to_host(container, container_path, host_path):
 		'''
-		Copies a file or directory from a container returned by `DockerUtils.start()` to the host system.
+		Copies a file or directory from a container returned by `DockerUtils.start_for_exec()` to the host system.
 		
 		`container_path` is the absolute path to the file or directory in the container.
 		
-		`host_path` is the absolute path to the directory on the host system where the copied files will be placed.
+		`host_path` is the absolute path to the directory on the host system where the copied file(s) will be placed.
 		'''
 		
 		# Create a temporary file to hold the .tar archive data
@@ -121,7 +157,7 @@ class DockerUtils(object):
 	@staticmethod
 	def exec(container, command, capture=False, **kwargs):
 		'''
-		Executes a command in a container returned by `DockerUtils.start()` and streams or captures the output
+		Executes a command in a container returned by `DockerUtils.start_for_exec()` and streams or captures the output
 		'''
 		
 		# Determine if we are capturing the output or printing it
@@ -163,7 +199,7 @@ class DockerUtils(object):
 	@staticmethod
 	def exec_multiple(container, commands=[], capture=False, pre_hook=None, post_hook=None, **kwargs):
 		'''
-		Executes multiple commands in a container returned by `DockerUtils.start()` and streams the output
+		Executes multiple commands in a container returned by `DockerUtils.start_for_exec()` and streams the output
 		'''
 		
 		# If no pre-execution and post-execution hooks were provided, set them to no-ops
@@ -222,14 +258,14 @@ class DockerUtils(object):
 	@staticmethod
 	def stop(container, timeout=1):
 		'''
-		Stops a container returned by `DockerUtils.start()`
+		Stops a container returned by `DockerUtils.start_for_exec()`
 		'''
 		container.stop(timeout=timeout)
 	
 	@staticmethod
 	def workspace_dir(container):
 		'''
-		Returns a platform-appropriate workspace path for a container returned by `DockerUtils.start()`
+		Returns a platform-appropriate workspace path for a container returned by `DockerUtils.start_for_exec()`
 		'''
 		platform = DockerUtils.container_platform(container)
 		return 'C:\\workspace' if platform == 'windows' else '/tmp/workspace'
