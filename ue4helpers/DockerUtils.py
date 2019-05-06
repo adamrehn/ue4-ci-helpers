@@ -126,7 +126,7 @@ class DockerUtils(object):
 				ArchiveUtils.compress(archiveName, 'tar', host_path)
 				
 				# Copy the data from the temporary archive to the container
-				container.put_archive(container_path, FilesystemUtils.read(tempArchive.name))
+				container.put_archive(container_path, FilesystemUtils.read(tempArchive.name, decode=False))
 				
 				# Remove the temporary archive
 				os.unlink(tempArchive.name)
