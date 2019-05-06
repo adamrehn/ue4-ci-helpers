@@ -52,4 +52,4 @@ Check out the docstring for the constructor of the [PackagerBase](https://github
 
 Copyright &copy; 2019, Adam Rehn. Licensed under the MIT License, see the file [LICENSE](https://github.com/adamrehn/ue4-ci-helpers/blob/master/LICENSE) for details.
 
-Development of this package was funded by [Deepdrive, Inc](https://deepdrive.io/).
+Initial development of this package was funded by [Deepdrive, Inc](https://deepdrive.io/).
