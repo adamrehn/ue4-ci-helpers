@@ -1,0 +1,16 @@
+if: tag IS present
+dist: xenial
+language: python
+python:
+- '3.7'
+install:
+- pip install wheel
+script: echo "No build-time tests to run."
+deploy:
+  provider: pypi
+  user: adamrehn
+  distributions: bdist_wheel
+  on:
+    tags: true
+  password:
+    secure: Add4ahnhqRn9n+CVMUVlPJbHMXmPNmNKnilRZihGRYL5tfXyFaLcWCmUCQf2gKNCM/PMuRb9JoM61dU6PXJWmKY9Iq0FleITqmhAYgbbf2CDPqE9Yb7lv+2LNxxvDHgrfb+XNl5V2AzYrAOOBaTA/bO2CJnG7C8fm0Ot3/NTocN6k4OvzqnAQctxD2Mok/NmA+UaOuKo9y3nW/jW8es13HmDqWYejOLty3HCG4vNCeXlrDbWNhQ0MBLM/CgfbK1i0qRjKklOZFsr8VzzIzuvR4wkASyrRwleUsplXHlIXlqzJ3vXOpFsMXZg1epMXy+VZg6092nCaMHhMv9p2qEOJxGjfNOX1tjHoYjhLxKbZtw65G75Vb6uOgRd7A9EXrKXvPwPpT7VobY2ypS4D7JI9T9e8ll+5PiRTa0tqzzYVc+uIRmmuzkcfTLmVR/mhKY4e519kJmiPeumHjWM32cQa2jnHmDp59C2r2gyzUZIvcZh5AotepkJM79nhB2la7Iga3aezgz6Ea1OECeFYK+Rx2SRgtxJappFuV0AIy4vWFFaQ5n6RJGgkQvYo/cIBUYkVBv6bCyJhzwrwKZraCs58u2M73Hy0kQdkKcspyCbochMB0IJcqEmkGha0qkBOyY8LZlkE0ysSmMbXOpvP7jFz4u4WWdUBZsWMEWM8X29oRY=
