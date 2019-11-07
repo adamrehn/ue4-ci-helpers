@@ -21,7 +21,7 @@ class AWSUtils(object):
 	@staticmethod
 	def start_instance(id):
 		'''
-		Starts an Amazon EC2 instance if it is not already running.
+		Starts an Amazon EC2 instance if it is not already running and returns its handle.
 		
 		`id` is the ID of the EC2 instance to be started.
 		'''
@@ -30,6 +30,10 @@ class AWSUtils(object):
 		ec2 = boto3.resource('ec2')
 		instance = ec2.Instance(id)
 		
+		# If the instance is already running then there's nothing to do
+		if instance.state['Name'] == 'running':
+			return instance
+		
 		# If the instance is currently stopping, wait for the stop to complete
 		if instance.state['Name'] in ['shutting-down', 'stopping']:
 			instance.wait_until_stopped()
@@ -37,6 +41,7 @@ class AWSUtils(object):
 		# Attempt to start the instance
 		instance.start()
 		instance.wait_until_running()
+		return instance
 	
 	@staticmethod
 	def get_instance_ip(id):
