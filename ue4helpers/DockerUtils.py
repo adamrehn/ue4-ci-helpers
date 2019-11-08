@@ -269,3 +269,11 @@ class DockerUtils(object):
 		'''
 		platform = DockerUtils.container_platform(container)
 		return 'C:\\workspace' if platform == 'windows' else '/tmp/workspace'
+	
+	@staticmethod
+	def shell_prefix(container):
+		'''
+		Returns a platform-appropriate command prefix for invoking a shell in a container returned by `DockerUtils.start_for_exec()`
+		'''
+		platform = DockerUtils.container_platform(container)
+		return ['cmd', '/S', '/C'] if platform == 'windows' else ['bash', '-c']
